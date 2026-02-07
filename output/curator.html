@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newsletter Curator</title>
+    <link rel="icon" type="image/svg+xml" href="/output/curator-favicon.svg">
+    <link rel="stylesheet" href="/output/assets/curator.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Newsletter Curator</h1>
+            <div class="header-controls">
+                <button class="btn btn-primary" onclick="openAddArticle()">+ Add Article</button>
+                <button class="btn btn-secondary" onclick="openArchives()">Archives</button>
+                <button class="btn btn-success" onclick="generateNewsletter()">Generate Newsletter</button>
+                <button class="btn btn-warning" onclick="archiveAll()">Archive Current</button>
+            </div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-pending">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-shortlisted">0</div>
+                    <div class="stat-label">Shortlisted</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-rejected">0</div>
+                    <div class="stat-label">Rejected</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="viewNewsletter()">View Newsletter</button>
+        </div>
+
+        <div class="view-tabs">
+            <button id="tab-articles" class="view-tab active" onclick="switchView('articles')">Articles</button>
+            <button id="tab-subscriptions" class="view-tab" onclick="switchView('subscriptions')">RSS Subscriptions</button>
+        </div>
+
+        <div id="articles-view" class="view-panel active">
+            <div class="workspace">
+                <aside class="queue-panel">
+                    <div class="queue-header">
+                        <h2>Queue</h2>
+                        <p>J/K navigate, S shortlist, R reject, N notes</p>
+                    </div>
+                    <div class="queue-filters">
+                        <button class="queue-filter active" onclick="setQueueStatus('pending')" id="queue-filter-pending">
+                            Pending <span id="count-pending">0</span>
+                        </button>
+                        <button class="queue-filter" onclick="setQueueStatus('shortlisted')" id="queue-filter-shortlisted">
+                            Shortlisted <span id="count-shortlisted">0</span>
+                        </button>
+                        <button class="queue-filter" onclick="setQueueStatus('rejected')" id="queue-filter-rejected">
+                            Rejected <span id="count-rejected">0</span>
+                        </button>
+                    </div>
+                    <div class="queue-bulk-actions">
+                        <button class="btn btn-secondary" onclick="archiveStatus('pending')">Archive Pending</button>
+                        <button class="btn btn-secondary" onclick="archiveStatus('shortlisted')">Archive Shortlisted</button>
+                    </div>
+                    <div class="queue-list" id="queue-list">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </aside>
+
+                <section class="reader-panel">
+                    <div class="reader-panel-header">
+                        <div>
+                            <h2 id="reader-title">Select an article</h2>
+                            <div class="reader-meta" id="reader-meta"></div>
+                        </div>
+                        <div class="reader-header-actions">
+                            <div class="reader-actions">
+                                <button class="btn btn-success" id="reader-shortlist">Shortlist</button>
+                                <button class="btn btn-danger" id="reader-reject">Reject</button>
+                                <button class="btn btn-secondary" id="reader-reset">Reset</button>
+                                <button class="btn btn-feed-remove" id="reader-remove-feed">Remove Feed</button>
+                                <button class="top-pick-toggle" id="reader-top-pick" title="Toggle Top Pick" aria-label="Toggle Top Pick">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 3.5l2.9 5.9 6.5 1-4.7 4.6 1.1 6.5-5.8-3.1-5.8 3.1 1.1-6.5-4.7-4.6 6.5-1z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <a class="btn btn-secondary" id="reader-open-link" target="_blank" rel="noopener">Open in new tab</a>
+                        </div>
+                    </div>
+
+                    <div class="reader-body">
+                        <div class="reader-frame">
+                            <iframe id="reader-iframe" title="Article preview"></iframe>
+                            <div class="reader-fallback">
+                                If the preview doesn't load, use "Open in new tab".
+                            </div>
+                        </div>
+                        <div class="reader-notes">
+                            <label for="reader-notes-input">Notes</label>
+                            <textarea id="reader-notes-input" placeholder="Add your take/notes while reading..."></textarea>
+                            <div id="notes-save-status" class="notes-save-status idle">Notes auto-save as you type.</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div id="subscriptions-view" class="view-panel">
+            <div class="subscriptions-panel">
+                <div class="subscriptions-header">
+                    <div>
+                        <strong>Active RSS Subscriptions</strong>
+                        <div style="font-size: 0.8rem; color: #6b7280;">Edit feed URLs, remove subscriptions, or remove related articles.</div>
+                    </div>
+                    <div class="subscriptions-controls">
+                        <label for="subscriptions-sort" style="font-size: 0.8rem; color: #666;">Sort:</label>
+                        <select id="subscriptions-sort" onchange="onSubscriptionsSortChange()">
+                            <option value="domain_asc">Domain (A-Z)</option>
+                            <option value="articles_desc">Articles (High-Low)</option>
+                            <option value="articles_asc">Articles (Low-High)</option>
+                        </select>
+                        <div id="subscriptions-count" style="font-size: 0.85rem; color: #666;">0 subscriptions</div>
+                    </div>
+                </div>
+                <div class="subscriptions-list" id="subscriptions-list">
+                    <div class="loading">Loading subscriptions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="newsletter-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Newsletters</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="newsletter-list" id="newsletter-list">
+                <h3>Past Newsletters</h3>
+                <div class="loading">Loading...</div>
+            </div>
+            <div class="newsletter-preview" id="newsletter-content">
+                <div class="empty-state"><p>Select a newsletter above or generate a new one.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="archives-modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Archives</h2>
+                <button class="modal-close" onclick="closeArchives()">&times;</button>
+            </div>
+            <div class="archives-controls" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                <label>Filter by week:</label>
+                <select id="archive-week-filter" onchange="loadArchivedArticles()">
+                    <option value="">All weeks</option>
+                </select>
+                <span id="archive-count" style="margin-left: auto; color: #666;"></span>
+            </div>
+            <div class="archived-list" id="archived-list" style="max-height: 60vh; overflow-y: auto;">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="add-article-modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Add Article</h2>
+                <button class="modal-close" onclick="closeAddArticle()">&times;</button>
+            </div>
+            <form id="add-article-form" onsubmit="submitArticle(event)">
+                <div class="form-group">
+                    <label for="article-url">URL *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="url" id="article-url" placeholder="https://example.com/article" required style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="fetchMetadata()">Fetch</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="article-title">Title *</label>
+                    <input type="text" id="article-title" placeholder="Article title" required>
+                </div>
+                <div class="form-group">
+                    <label for="article-summary">Summary</label>
+                    <textarea id="article-summary" placeholder="Brief summary of the article" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="article-topic">Topic</label>
+                    <select id="article-topic">
+                        <option value="">Select topic...</option>
+                        <option value="AI Applications">AI Applications</option>
+                        <option value="AI for Consumer">AI for Consumer</option>
+                        <option value="AI for Healthcare">AI for Healthcare</option>
+                        <option value="AI for Finance">AI for Finance</option>
+                        <option value="AI for Operators">AI for Operators</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="article-notes">Your Take / Notes</label>
+                    <textarea id="article-notes" placeholder="Your commentary on this article..." rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="article-shortlist" checked>
+                        <span>Auto-shortlist this article</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddArticle()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Article</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/output/assets/curator.js"></script>
+</body>
+</html>

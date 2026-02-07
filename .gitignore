@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual envs
+venv/
+.env
+
+# Node
+node_modules/
+
+# Runtime data / local DB
+newsletter.db
+feeds_cache.json
+*.log
+rss_run.log
+sync.log
+
+# Local/debug artifacts
+.DS_Store
+output/.DS_Store
+debug_page.html
+newslettertemp.md
+
+# Generated newsletter outputs
+output/daily_digest_*.md
+output/digest_data.json
+output/newsletters/
+
+# Local agent metadata
+.claude/

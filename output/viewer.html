@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Newsletter Digest Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="text"], input[type="number"] {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            min-width: 150px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .stat {
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .articles {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .article {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .article:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .article-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .article-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            text-decoration: none;
+            flex: 1;
+        }
+
+        .article-title:hover {
+            color: #667eea;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tag-source {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .tag-topic {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .tag-date {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .article-summary {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .no-results h2 {
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .topic-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .topic-chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .topic-chip:hover {
+            border-color: #667eea;
+        }
+
+        .topic-chip.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                width: 100%;
+            }
+
+            select, input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Newsletter Digest</h1>
+            <p id="generated-info">Loading...</p>
+        </header>
+
+        <div class="controls">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label>Sort By</label>
+                    <select id="sort-select">
+                        <option value="date-desc">Date (Newest First)</option>
+                        <option value="date-asc">Date (Oldest First)</option>
+                        <option value="source">Source (A-Z)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Source</label>
+                    <select id="source-select">
+                        <option value="">All Sources</option>
+                    </select>
+                </div>
+
+                <div class="control-group search-box">
+                    <label>Search</label>
+                    <input type="text" id="search-input" placeholder="Search titles, summaries...">
+                </div>
+            </div>
+
+            <div class="topic-filters" id="topic-filters"></div>
+
+            <div class="stats">
+                <div class="stat">Showing: <span class="stat-value" id="showing-count">0</span></div>
+                <div class="stat">Total: <span class="stat-value" id="total-count">0</span></div>
+            </div>
+        </div>
+
+        <div class="articles" id="articles-container">
+            <div class="loading">Loading articles...</div>
+        </div>
+    </div>
+
+    <script>
+        let allArticles = [];
+        let activeTopics = new Set();
+
+        async function loadData() {
+            try {
+                const response = await fetch('digest_data.json');
+                const data = await response.json();
+                allArticles = data.items || [];
+
+                document.getElementById('generated-info').textContent =
+                    `Generated: ${new Date(data.generated_at).toLocaleString()} | ${data.total_items} articles`;
+
+                populateFilters();
+                renderArticles();
+            } catch (error) {
+                document.getElementById('articles-container').innerHTML =
+                    `<div class="no-results">
+                        <h2>Could not load data</h2>
+                        <p>Make sure digest_data.json exists in the output folder.</p>
+                        <p>Run: python rss_feed_scorer.py</p>
+                    </div>`;
+            }
+        }
+
+        function populateFilters() {
+            // Populate sources
+            const sources = [...new Set(allArticles.map(a => a.source))].sort();
+            const sourceSelect = document.getElementById('source-select');
+            sources.forEach(source => {
+                const option = document.createElement('option');
+                option.value = source;
+                option.textContent = source;
+                sourceSelect.appendChild(option);
+            });
+
+            // Populate topics
+            const topics = [...new Set(allArticles.map(a => a.topic).filter(t => t))].sort();
+            const topicFilters = document.getElementById('topic-filters');
+            topics.forEach(topic => {
+                const chip = document.createElement('button');
+                chip.className = 'topic-chip';
+                chip.textContent = topic;
+                chip.onclick = () => toggleTopic(topic, chip);
+                topicFilters.appendChild(chip);
+            });
+        }
+
+        function toggleTopic(topic, chip) {
+            if (activeTopics.has(topic)) {
+                activeTopics.delete(topic);
+                chip.classList.remove('active');
+            } else {
+                activeTopics.add(topic);
+                chip.classList.add('active');
+            }
+            renderArticles();
+        }
+
+        function getFilteredArticles() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const source = document.getElementById('source-select').value;
+
+            return allArticles.filter(article => {
+                if (source && article.source !== source) return false;
+                if (activeTopics.size > 0 && !activeTopics.has(article.topic)) return false;
+                if (search) {
+                    const searchText = `${article.title} ${article.summary} ${article.source}`.toLowerCase();
+                    if (!searchText.includes(search)) return false;
+                }
+                return true;
+            });
+        }
+
+        function sortArticles(articles) {
+            const sortBy = document.getElementById('sort-select').value;
+
+            return [...articles].sort((a, b) => {
+                switch (sortBy) {
+                    case 'date-desc':
+                        return new Date(b.published || 0) - new Date(a.published || 0);
+                    case 'date-asc':
+                        return new Date(a.published || 0) - new Date(b.published || 0);
+                    case 'source':
+                        return a.source.localeCompare(b.source);
+                    default:
+                        return 0;
+                }
+            });
+        }
+
+        function renderArticles() {
+            const filtered = getFilteredArticles();
+            const sorted = sortArticles(filtered);
+
+            // Update stats
+            document.getElementById('showing-count').textContent = sorted.length;
+            document.getElementById('total-count').textContent = allArticles.length;
+
+            const container = document.getElementById('articles-container');
+
+            if (sorted.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <h2>No articles found</h2>
+                        <p>Try adjusting your filters or search terms.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = sorted.map(article => {
+                const dateStr = article.published
+                    ? new Date(article.published).toLocaleDateString()
+                    : '';
+
+                return `
+                    <div class="article">
+                        <div class="article-header">
+                            <a href="${article.url}" target="_blank" class="article-title">${escapeHtml(article.title)}</a>
+                        </div>
+                        <div class="article-meta">
+                            <span class="tag tag-source">${escapeHtml(article.source)}</span>
+                            ${article.topic ? `<span class="tag tag-topic">${escapeHtml(article.topic)}</span>` : ''}
+                            ${dateStr ? `<span class="tag tag-date">${dateStr}</span>` : ''}
+                        </div>
+                        ${article.summary ? `<p class="article-summary">${escapeHtml(article.summary.substring(0, 200))}${article.summary.length > 200 ? '...' : ''}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        document.getElementById('sort-select').addEventListener('change', renderArticles);
+        document.getElementById('source-select').addEventListener('change', renderArticles);
+        document.getElementById('search-input').addEventListener('input', renderArticles);
+
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>

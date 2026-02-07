@@ -1,0 +1,15 @@
+:root {
+  --color-bg-canvas: #f3efe6;
+  --color-surface: #ffffff;
+  --color-surface-muted: #ece8de;
+  --color-text: #1f2933;
+  --color-text-muted: #5a6675;
+  --color-accent: #1f5c53;
+  --color-accent-strong: #123c36;
+  --color-success: #1e7a44;
+  --color-danger: #ad2f2f;
+  --color-warning: #b7791f;
+  --color-info: #16637a;
+  --shadow-sm: 0 2px 10px rgba(16, 24, 40, 0.08);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.14);
+}
