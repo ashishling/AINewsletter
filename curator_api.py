@@ -226,16 +226,6 @@ def get_newsletter(newsletter_id):
     return jsonify({"error": "Newsletter not found"}), 404
 
 
-@app.route("/api/archive-all", methods=["POST"])
-def archive_all():
-    """Archive all current (non-archived) articles."""
-    count = db.archive_all_current()
-    return jsonify({
-        "success": True,
-        "archived_count": count
-    })
-
-
 @app.route("/api/archive-status", methods=["POST"])
 def archive_status():
     """Archive all current articles for a specific status."""

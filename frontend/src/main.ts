@@ -7,7 +7,6 @@ declare global {
     openAddArticle: () => void;
     openArchives: () => void;
     generateNewsletter: () => Promise<void>;
-    archiveAll: () => Promise<void>;
     archiveStatus: (status: string) => Promise<void>;
     archiveCurrentFolder: () => Promise<void>;
     pullFromFeeds: () => Promise<void>;
@@ -236,26 +235,6 @@ declare global {
                 await loadSubscriptions();
             } catch (error) {
                 showToast('Failed to remove subscription', 'error');
-            }
-        }
-
-        async function archiveAll() {
-            if (!confirm('Archive all current articles? This will clear the main view.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/archive-all', { method: 'POST' });
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(`Archived ${result.archived_count} articles`, 'success');
-                    await loadArticles();
-                } else {
-                    showToast('Failed to archive', 'error');
-                }
-            } catch (error) {
-                showToast('Failed to archive', 'error');
             }
         }
 
@@ -1070,7 +1049,6 @@ declare global {
             });
         }
 
-        window.archiveAll = archiveAll;
         window.archiveCurrentFolder = archiveCurrentFolder;
         window.archiveStatus = archiveStatus;
         window.closeAddArticle = closeAddArticle;
