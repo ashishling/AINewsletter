@@ -36,7 +36,7 @@ declare global {
         let notesStatusResetTimeout = null;
         let activeReaderArticleId = null;
         let activeView = 'articles';
-        let activeQueueStatus = 'pending';
+        let activeQueueStatus = 'shortlisted';
         const queueStatuses = ['pending', 'shortlisted', 'rejected'];
         let nextQueueIndexAfterMutation = null;
         const queueScrollTopByStatus = { pending: 0, shortlisted: 0, rejected: 0 };

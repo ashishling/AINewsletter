@@ -54,10 +54,10 @@
                         <p>J/K navigate, S shortlist, R reject, N notes</p>
                     </div>
                     <div class="queue-filters">
-                        <button class="queue-filter active" onclick="setQueueStatus('pending')" id="queue-filter-pending">
+                        <button class="queue-filter" onclick="setQueueStatus('pending')" id="queue-filter-pending">
                             Pending <span id="count-pending">0</span>
                         </button>
-                        <button class="queue-filter" onclick="setQueueStatus('shortlisted')" id="queue-filter-shortlisted">
+                        <button class="queue-filter active" onclick="setQueueStatus('shortlisted')" id="queue-filter-shortlisted">
                             Shortlisted <span id="count-shortlisted">0</span>
                         </button>
                         <button class="queue-filter" onclick="setQueueStatus('rejected')" id="queue-filter-rejected">
@@ -134,17 +134,18 @@
             </div>
         </div>
 
-        <section class="fun-metrics" id="fun-metrics">
-            <div class="metric-card">
-                <div class="metric-label">Time Spent Reading (Current Month)</div>
-                <div class="metric-value" id="metric-reading-time">0m</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Reading Streak (Days)</div>
-                <div class="metric-value" id="metric-reading-streak">0</div>
-            </div>
-        </section>
     </div>
+
+    <footer class="metrics-footer" id="fun-metrics">
+        <div class="metric-item">
+            <span class="metric-label">Time Spent Reading (Current Month)</span>
+            <span class="metric-value" id="metric-reading-time">0m</span>
+        </div>
+        <div class="metric-item">
+            <span class="metric-label">Reading Streak (Days)</span>
+            <span class="metric-value" id="metric-reading-streak">0</span>
+        </div>
+    </footer>
 
     <div class="modal" id="newsletter-modal">
         <div class="modal-content">
