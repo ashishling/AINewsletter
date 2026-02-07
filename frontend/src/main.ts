@@ -9,6 +9,8 @@ declare global {
     generateNewsletter: () => Promise<void>;
     archiveAll: () => Promise<void>;
     archiveStatus: (status: string) => Promise<void>;
+    archiveCurrentFolder: () => Promise<void>;
+    pullFromFeeds: () => Promise<void>;
     viewNewsletter: (selectedWeek?: string | null) => Promise<void>;
     switchView: (viewName: string) => void;
     closeModal: () => void;
@@ -287,6 +289,38 @@ declare global {
                 await loadArticles();
             } catch (_error) {
                 showToast('Failed to archive', 'error');
+            }
+        }
+
+        async function archiveCurrentFolder() {
+            await archiveStatus(activeQueueStatus);
+        }
+
+        async function pullFromFeeds() {
+            const button = document.getElementById('pull-feeds-btn');
+            const original = button ? button.textContent : '';
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Pulling...';
+            }
+
+            try {
+                const response = await fetch('/api/sync-feeds', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) {
+                    showToast(result.error || 'Failed to pull feeds', 'error');
+                    return;
+                }
+                showToast(`Pulled feeds: ${result.stored_count || 0} article(s) stored`, 'success');
+                await loadArticles();
+                await loadSubscriptions();
+            } catch (_error) {
+                showToast('Failed to pull feeds', 'error');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = original || 'Pull From Feeds';
+                }
             }
         }
 
@@ -1037,6 +1071,7 @@ declare global {
         }
 
         window.archiveAll = archiveAll;
+        window.archiveCurrentFolder = archiveCurrentFolder;
         window.archiveStatus = archiveStatus;
         window.closeAddArticle = closeAddArticle;
         window.closeArchives = closeArchives;
@@ -1050,6 +1085,7 @@ declare global {
         window.openArchives = openArchives;
         window.onSubscriptionsSortChange = onSubscriptionsSortChange;
         window.openReader = openReader;
+        window.pullFromFeeds = pullFromFeeds;
         window.removeFeedForArticle = removeFeedForArticle;
         window.removeSubscriptionByEncoded = removeSubscriptionByEncoded;
         window.saveSubscriptionByEncoded = saveSubscriptionByEncoded;

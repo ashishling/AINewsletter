@@ -14,6 +14,7 @@ from datetime import datetime
 import config
 import db
 from newsletter_generator import generate_newsletter
+from rss_feed_scorer import run_sync
 
 
 def fetch_url_metadata(url: str) -> dict:
@@ -249,6 +250,24 @@ def archive_status():
         "status": status,
         "archived_count": count
     })
+
+
+@app.route("/api/sync-feeds", methods=["POST"])
+def sync_feeds():
+    """Run RSS sync manually and store latest articles."""
+    try:
+        stored_count = run_sync(
+            cron_mode=False,
+            skip_discovery=False,
+            limit_domains=0,
+            verbose=False,
+        )
+        return jsonify({
+            "success": True,
+            "stored_count": stored_count,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/articles/<article_id>/unarchive", methods=["POST"])

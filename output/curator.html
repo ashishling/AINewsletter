@@ -13,6 +13,7 @@
             <h1>Newsletter Curator</h1>
             <div class="header-controls">
                 <button class="btn btn-primary" onclick="openAddArticle()">+ Add Article</button>
+                <button class="btn btn-secondary" id="pull-feeds-btn" onclick="pullFromFeeds()">Pull From Feeds</button>
                 <button class="btn btn-secondary" onclick="openArchives()">Archives</button>
                 <button class="btn btn-success" onclick="generateNewsletter()">Generate Newsletter</button>
                 <button class="btn btn-warning" onclick="archiveAll()">Archive Current</button>
@@ -65,8 +66,7 @@
                         </button>
                     </div>
                     <div class="queue-bulk-actions">
-                        <button class="btn btn-secondary" onclick="archiveStatus('pending')">Archive Pending</button>
-                        <button class="btn btn-secondary" onclick="archiveStatus('shortlisted')">Archive Shortlisted</button>
+                        <button class="btn btn-secondary" id="archive-current-folder-btn" onclick="archiveCurrentFolder()">Archive Current Folder</button>
                     </div>
                     <div class="queue-list" id="queue-list">
                         <div class="loading">Loading...</div>
