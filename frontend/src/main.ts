@@ -41,10 +41,19 @@ declare global {
         let nextQueueIndexAfterMutation = null;
         const queueScrollTopByStatus = { pending: 0, shortlisted: 0, rejected: 0 };
         let subscriptionsSort = 'domain_asc';
+        const READING_METRICS_KEY = 'curator_reading_metrics_v1';
+        const READING_STREAK_THRESHOLD_SECONDS = 60;
+        const READING_TICK_MS = 5000;
+        let readingMetrics = { monthly_seconds: {}, daily_seconds: {} };
+        let readingTicker = null;
+        let readingLastTickAt = null;
 
         async function init() {
+            loadReadingMetrics();
+            renderReadingMetrics();
             await loadArticles();
             await loadSubscriptions();
+            updateReadingTrackerState();
         }
 
         async function loadArticles() {
@@ -89,6 +98,7 @@ declare global {
             document.getElementById('tab-subscriptions').classList.toggle('active', viewName === 'subscriptions');
             document.getElementById('articles-view').classList.toggle('active', viewName === 'articles');
             document.getElementById('subscriptions-view').classList.toggle('active', viewName === 'subscriptions');
+            updateReadingTrackerState();
         }
 
         async function loadSubscriptions() {
@@ -825,6 +835,7 @@ declare global {
             topPickBtn.onclick = async () => {
                 await toggleTopPick(articleId, !article.top_pick);
             };
+            updateReadingTrackerState();
         }
 
         function closeReader() {
@@ -836,6 +847,7 @@ declare global {
             setNotesSaveState('idle', 'Notes auto-save as you type.');
             activeReaderArticleId = null;
             renderQueue({ preserveScroll: true, animate: false });
+            updateReadingTrackerState();
         }
 
         function closeAddArticle() {
@@ -972,6 +984,126 @@ declare global {
             }
         }
 
+        function getTodayKey(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getMonthKey(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+
+        function formatReadingDuration(seconds) {
+            const totalMinutes = Math.floor((seconds || 0) / 60);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            }
+            return `${minutes}m`;
+        }
+
+        function loadReadingMetrics() {
+            try {
+                const raw = localStorage.getItem(READING_METRICS_KEY);
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                readingMetrics = {
+                    monthly_seconds: parsed.monthly_seconds || {},
+                    daily_seconds: parsed.daily_seconds || {},
+                };
+            } catch (_error) {
+                readingMetrics = { monthly_seconds: {}, daily_seconds: {} };
+            }
+        }
+
+        function saveReadingMetrics() {
+            try {
+                localStorage.setItem(READING_METRICS_KEY, JSON.stringify(readingMetrics));
+            } catch (_error) {
+                // Ignore storage errors (quota/private mode)
+            }
+        }
+
+        function computeReadingStreakDays() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            let cursor = (readingMetrics.daily_seconds[getTodayKey(today)] || 0) >= READING_STREAK_THRESHOLD_SECONDS
+                ? new Date(today)
+                : new Date(yesterday);
+
+            let streak = 0;
+            for (let i = 0; i < 366; i += 1) {
+                const key = getTodayKey(cursor);
+                const seconds = readingMetrics.daily_seconds[key] || 0;
+                if (seconds < READING_STREAK_THRESHOLD_SECONDS) break;
+                streak += 1;
+                cursor.setDate(cursor.getDate() - 1);
+            }
+            return streak;
+        }
+
+        function renderReadingMetrics() {
+            const monthSeconds = readingMetrics.monthly_seconds[getMonthKey()] || 0;
+            const streakDays = computeReadingStreakDays();
+            const monthEl = document.getElementById('metric-reading-time');
+            const streakEl = document.getElementById('metric-reading-streak');
+            if (monthEl) monthEl.textContent = formatReadingDuration(monthSeconds);
+            if (streakEl) streakEl.textContent = String(streakDays);
+        }
+
+        function addReadingSeconds(seconds) {
+            if (!seconds || seconds <= 0) return;
+            const clamped = Math.min(seconds, 20);
+            const monthKey = getMonthKey();
+            const dayKey = getTodayKey();
+            readingMetrics.monthly_seconds[monthKey] = (readingMetrics.monthly_seconds[monthKey] || 0) + clamped;
+            readingMetrics.daily_seconds[dayKey] = (readingMetrics.daily_seconds[dayKey] || 0) + clamped;
+            saveReadingMetrics();
+            renderReadingMetrics();
+        }
+
+        function onReadingTick() {
+            if (!readingLastTickAt) {
+                readingLastTickAt = Date.now();
+                return;
+            }
+            const now = Date.now();
+            const elapsed = Math.round((now - readingLastTickAt) / 1000);
+            readingLastTickAt = now;
+            addReadingSeconds(elapsed);
+        }
+
+        function startReadingTracker() {
+            if (readingTicker) return;
+            readingLastTickAt = Date.now();
+            readingTicker = setInterval(onReadingTick, READING_TICK_MS);
+        }
+
+        function stopReadingTracker() {
+            if (!readingTicker) return;
+            clearInterval(readingTicker);
+            readingTicker = null;
+            onReadingTick();
+            readingLastTickAt = null;
+        }
+
+        function updateReadingTrackerState() {
+            const shouldTrack = activeView === 'articles'
+                && !!activeReaderArticleId
+                && document.visibilityState === 'visible';
+            if (shouldTrack) {
+                startReadingTracker();
+            } else {
+                stopReadingTracker();
+            }
+        }
+
         function setNotesSaveState(state, message) {
             const statusEl = document.getElementById('notes-save-status');
             if (!statusEl) return;
@@ -1042,6 +1174,8 @@ declare global {
             });
         }
         document.addEventListener('keydown', handleQueueKeyboardShortcuts);
+        document.addEventListener('visibilitychange', updateReadingTrackerState);
+        window.addEventListener('beforeunload', stopReadingTracker);
         const queueList = document.getElementById('queue-list');
         if (queueList) {
             queueList.addEventListener('scroll', () => {

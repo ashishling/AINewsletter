@@ -1251,6 +1251,34 @@ header h1 {
     letter-spacing: 0.06em;
 }
 
+.fun-metrics {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.metric-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #d8dee8;
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.metric-label {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.metric-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f766e;
+    line-height: 1.2;
+}
+
 @media (max-width: 1150px) {
     .workspace {
         grid-template-columns: 1fr;
@@ -1327,6 +1355,10 @@ header h1 {
 
     .subscription-actions .btn {
         flex: 1 1 100%;
+    }
+
+    .fun-metrics {
+        grid-template-columns: 1fr;
     }
 }
 
