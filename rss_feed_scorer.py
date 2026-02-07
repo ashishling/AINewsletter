@@ -166,7 +166,11 @@ def discover_rss_feed(domain: str, cache: dict) -> Optional[str]:
 def parse_feed(feed_url: str, cutoff_date: Optional[datetime] = None) -> list[dict]:
     """Parse an RSS feed and return items published on or after cutoff_date."""
     try:
-        feed = feedparser.parse(feed_url)
+        # Use requests with timeout so a single slow feed cannot hang manual sync.
+        headers = {"User-Agent": config.USER_AGENT}
+        response = requests.get(feed_url, headers=headers, timeout=config.REQUEST_TIMEOUT)
+        response.raise_for_status()
+        feed = feedparser.parse(response.content)
 
         if feed.bozo and not feed.entries:
             return []

@@ -5,6 +5,7 @@ Provides endpoints for browsing, curating articles, and generating newsletters.
 """
 import os
 import json
+import threading
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, request, send_from_directory
@@ -59,6 +60,17 @@ def fetch_url_metadata(url: str) -> dict:
         }
 
 app = Flask(__name__, static_folder="output")
+
+_sync_state_lock = threading.Lock()
+_sync_state = {
+    "running": False,
+    "started_at": None,
+    "finished_at": None,
+    "stored_count": 0,
+    "error": None,
+    "mode": "incremental",
+    "discovery": False,
+}
 
 
 def load_feeds_cache_data() -> dict:
@@ -244,20 +256,72 @@ def archive_status():
 
 @app.route("/api/sync-feeds", methods=["POST"])
 def sync_feeds():
-    """Run RSS sync manually and store latest articles."""
-    try:
-        stored_count = run_sync(
-            cron_mode=False,
-            skip_discovery=False,
-            limit_domains=0,
-            verbose=False,
-        )
-        return jsonify({
-            "success": True,
-            "stored_count": stored_count,
+    """Start RSS sync in background and return immediately."""
+    data = request.get_json(silent=True) or {}
+    full_sync = bool(data.get("full_sync", False))
+    discover = bool(data.get("discover", False))
+    mode = "full" if full_sync else "incremental"
+
+    with _sync_state_lock:
+        if _sync_state["running"]:
+            return jsonify({
+                "success": True,
+                "started": False,
+                "running": True,
+                "message": "Sync already running",
+            }), 202
+
+        _sync_state.update({
+            "running": True,
+            "started_at": datetime.now().isoformat(),
+            "finished_at": None,
+            "stored_count": 0,
+            "error": None,
+            "mode": mode,
+            "discovery": discover,
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+
+    def _run_sync_job():
+        try:
+            stored_count = run_sync(
+                cron_mode=not full_sync,
+                skip_discovery=not discover,
+                limit_domains=0,
+                verbose=False,
+            )
+            with _sync_state_lock:
+                _sync_state.update({
+                    "running": False,
+                    "finished_at": datetime.now().isoformat(),
+                    "stored_count": stored_count,
+                    "error": None,
+                })
+        except Exception as e:
+            with _sync_state_lock:
+                _sync_state.update({
+                    "running": False,
+                    "finished_at": datetime.now().isoformat(),
+                    "stored_count": 0,
+                    "error": str(e),
+                })
+
+    thread = threading.Thread(target=_run_sync_job, daemon=True)
+    thread.start()
+
+    return jsonify({
+        "success": True,
+        "started": True,
+        "running": True,
+        "mode": mode,
+        "discovery": discover,
+    }), 202
+
+
+@app.route("/api/sync-feeds/status", methods=["GET"])
+def sync_feeds_status():
+    """Get status of the latest manual RSS sync job."""
+    with _sync_state_lock:
+        return jsonify(dict(_sync_state))
 
 
 @app.route("/api/articles/<article_id>/unarchive", methods=["POST"])

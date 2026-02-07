@@ -292,17 +292,20 @@ declare global {
                 button.disabled = true;
                 button.textContent = 'Pulling...';
             }
+            showToast('Pulling feeds... this may take a minute', 'success');
 
             try {
-                const response = await fetch('/api/sync-feeds', { method: 'POST' });
+                const response = await fetch('/api/sync-feeds', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_sync: false, discover: false }),
+                });
                 const result = await response.json();
                 if (!response.ok) {
                     showToast(result.error || 'Failed to pull feeds', 'error');
                     return;
                 }
-                showToast(`Pulled feeds: ${result.stored_count || 0} article(s) stored`, 'success');
-                await loadArticles();
-                await loadSubscriptions();
+                await waitForFeedSyncCompletion(90);
             } catch (_error) {
                 showToast('Failed to pull feeds', 'error');
             } finally {
@@ -311,6 +314,36 @@ declare global {
                     button.textContent = original || 'Pull From Feeds';
                 }
             }
+        }
+
+        async function waitForFeedSyncCompletion(timeoutSeconds = 90) {
+            const startedAt = Date.now();
+            while ((Date.now() - startedAt) / 1000 < timeoutSeconds) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                try {
+                    const response = await fetch('/api/sync-feeds/status');
+                    const status = await response.json();
+                    if (!response.ok) {
+                        showToast('Could not read feed sync status', 'error');
+                        return;
+                    }
+                    if (status.running) {
+                        continue;
+                    }
+                    if (status.error) {
+                        showToast(`Feed pull failed: ${status.error}`, 'error');
+                        return;
+                    }
+                    showToast(`Pulled feeds: ${status.stored_count || 0} article(s) stored`, 'success');
+                    await loadArticles();
+                    await loadSubscriptions();
+                    return;
+                } catch (_error) {
+                    showToast('Could not read feed sync status', 'error');
+                    return;
+                }
+            }
+            showToast('Feed pull is still running in background', 'success');
         }
 
         async function openArchives() {
